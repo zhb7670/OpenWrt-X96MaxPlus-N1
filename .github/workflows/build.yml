@@ -96,7 +96,7 @@ jobs:
             p7zip-full python3 python3-pip python3-ply python3-pyelftools \
             qemu-utils rsync scons squashfs-tools subversion swig texinfo \
             uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd \
-            file dosfstools e2fsprogs fdisk losetup xfsprogs
+            file dosfstools e2fsprogs fdisk util-linux xfsprogs
           sudo timedatectl set-timezone "${TZ:-Etc/UTC}" || true
           sudo ntpdate ntp.ubuntu.com 0.pool.ntp.org 2>/dev/null || true
 
