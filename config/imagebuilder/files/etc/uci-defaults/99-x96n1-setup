@@ -1,0 +1,24 @@
+#!/bin/sh
+#======================================================================================
+# OpenWrt-X96MaxPlus-N1  -  first-boot tweaks
+# Executed once on first boot via /etc/uci-defaults
+#======================================================================================
+
+# Basic uhttpd / LuCI hardening-friendly defaults
+uci -q batch <<-EOF
+	set uhttpd.main.redirect_https='0'
+	set luci.main.lang='zh_cn'
+	set luci.main.mediaurlbase='/luci-static/argon'
+	set luci.themes.Argon='/luci-static/argon'
+	commit uhttpd
+	commit luci
+EOF
+
+# ttyd: shell without login prompt, restart on exit
+uci -q batch <<-EOF
+	set ttyd.@ttyd[0].command='/bin/login -f root'
+	set ttyd.@ttyd[0].interface='@lan'
+	commit ttyd
+EOF
+
+exit 0

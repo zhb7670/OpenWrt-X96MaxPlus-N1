@@ -1,0 +1,175 @@
+#=====================================================================================
+# https://github.com/zhb7670/OpenWrt-X96MaxPlus-N1
+#
+# Description:  Build OpenWrt for X96 Max+ (S905X3) and Phicomm N1 (S905D)
+# Base:         https://github.com/ophub/amlogic-s9xxx-openwrt  (packaging action)
+#               https://github.com/ophub/kernel                    (kernel)
+# Inspired by:  https://github.com/haiibo/OpenWrt (ARMv8 Plus, archived)
+#
+# 只做两个硬件：
+#   X96 Max+ / Amlogic S905X3  -> board: s905x3   (ID 501 X96-Max+_100Mb, rtl8822cs)
+#   Phicomm N1 / Amlogic S905D -> board: s905d    (ID 101 Phicomm-N1, brcm43455)
+# 其他 Amlogic 盒子一律不构建。
+#=====================================================================================
+
+name: Build OpenWrt (X96Max+ / N1)
+
+on:
+  workflow_dispatch:
+    inputs:
+      releases_branch:
+        description: "OpenWrt releases branch"
+        required: false
+        default: "openwrt:25.12.5"
+        type: choice
+        options:
+          - openwrt:25.12.5
+          - openwrt:24.10.8
+          - immortalwrt:25.12.1
+          - immortalwrt:24.10.6
+      openwrt_board:
+        description: "Device board(s), comma separated (s905x3 = X96Max+, s905d = N1)"
+        required: false
+        default: "s905x3,s905d"
+      openwrt_kernel:
+        description: "Kernel version (auto_kernel=true overrides to latest)"
+        required: false
+        default: "6.12.y_6.18.y"
+        type: choice
+        options:
+          - 6.12.y_6.18.y
+          - 6.1.y_6.12.y
+          - 6.18.y
+          - 6.12.y
+      auto_kernel:
+        description: "Auto use the latest stable kernel"
+        required: false
+        default: true
+        type: boolean
+      openwrt_ip:
+        description: "Default LAN IP"
+        required: false
+        default: "192.168.1.1"
+      builder_name:
+        description: "Builder signature"
+        required: false
+        default: "zhb7670"
+  schedule:
+    # 每周一 03:00 UTC 自动检查上游更新
+    - cron: "0 3 * * 1"
+
+env:
+  TZ: Etc/UTC
+  IMAGEBUILDER_SH: config/imagebuilder/imagebuilder.sh
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          docker rmi -f $(docker images -q) 2>/dev/null || true
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc 2>/dev/null || true
+          sudo swapoff -a || true
+          sudo rm -f /swapfile /mnt/swapfile 2>/dev/null || true
+          df -hT /
+
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install \
+            ack antlr3 aria2 asciidoc autoconf automake autopoint binutils bison \
+            build-essential bzip2 ccache cmake cpio curl device-tree-compiler \
+            fastjar flex gawk gettext gcc-multilib g++-multilib git gperf \
+            haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev \
+            libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev \
+            libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev \
+            libssl-dev libtool lrzsz mkisofs msmtp nano ninja-build p7zip \
+            p7zip-full python3 python3-pip python3-ply python3-pyelftools \
+            qemu-utils rsync scons squashfs-tools subversion swig texinfo \
+            uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd \
+            file dosfstools e2fsprogs fdisk losetup xfsprogs
+          sudo timedatectl set-timezone "${TZ:-Etc/UTC}" || true
+          sudo ntpdate ntp.ubuntu.com 0.pool.ntp.org 2>/dev/null || true
+
+      - name: Build OpenWrt rootfs [ ${{ inputs.releases_branch || 'openwrt:25.12.5' }} ]
+        id: imagebuilder
+        run: |
+          RELEASES_BRANCH="${{ inputs.releases_branch }}"
+          [[ -z "${RELEASES_BRANCH}" ]] && RELEASES_BRANCH="openwrt:25.12.5"
+          chmod +x ${IMAGEBUILDER_SH}
+          ${IMAGEBUILDER_SH} ${RELEASES_BRANCH}
+          echo "build_tag=OpenWrt_X96MaxPlus_N1_${RELEASES_BRANCH/:/_}_$(date +"%Y.%m.%d")" >> ${GITHUB_ENV}
+          # Create symbolic link for the packaging action
+          [[ -d "/builder/openwrt" ]] || mkdir -p /builder/openwrt
+          mkdir -p /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main
+          ln -sf ${PWD}/output /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main/openwrt || true
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Package OpenWrt for X96Max+ / N1
+        id: package
+        if: ${{ steps.imagebuilder.outputs.status == 'success' && !cancelled() }}
+        uses: ophub/amlogic-s9xxx-openwrt@main
+        with:
+          openwrt_path: output/*rootfs.tar.gz
+          openwrt_board: ${{ inputs.openwrt_board || 's905x3,s905d' }}
+          openwrt_kernel: ${{ inputs.openwrt_kernel || '6.12.y_6.18.y' }}
+          auto_kernel: ${{ inputs.auto_kernel || 'true' }}
+          kernel_repo: "ophub/kernel"
+          kernel_usage: "stable"
+          openwrt_ip: ${{ inputs.openwrt_ip || '192.168.1.1' }}
+          builder_name: ${{ inputs.builder_name || 'zhb7670' }}
+
+      - name: Generate SHA256
+        if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
+        run: |
+          cd "${PACKAGED_OUTPUTPATH}"
+          sha256sum * > sha256sum.txt 2>/dev/null || true
+          ls -lh
+          cat sha256sum.txt 2>/dev/null || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
+        with:
+          name: OpenWrt-X96MaxPlus-N1-${{ env.PACKAGED_OUTPUTDATE }}
+          path: |
+            ${{ env.PACKAGED_OUTPUTPATH }}/*
+          retention-days: 7
+
+      - name: Publish to Release
+        uses: ophub/upload-to-releases@main
+        if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() && github.event_name == 'workflow_dispatch' }}
+        with:
+          tag: ${{ env.build_tag }}
+          artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+          allow_updates: true
+          remove_artifacts: false
+          replaces_artifacts: true
+          make_latest: true
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            ### OpenWrt for X96 Max+ / Phicomm N1
+
+            - OpenWrt: `${{ inputs.releases_branch || 'openwrt:25.12.5' }}`
+            - Kernel: auto (latest stable, currently 6.18.y)
+            - Board: `s905x3` (X96 Max+), `s905d` (N1)
+            - Default IP: `192.168.1.1` / user `root` / pass `password`
+
+            #### Hardware matrix
+            | Device | SoC | DTB | NIC | WiFi |
+            |---|---|---|---|---|
+            | X96 Max+ | S905X3 | meson-sm1-x96-max-plus-100m.dtb | 1Gb | RTL8822CS |
+            | Phicomm N1 | S905D | meson-gxl-s905d-phicomm-n1.dtb | 1Gb | BCM43455 |
+
+            #### Install
+            - Write the `*.img` to SD/USB with balenaEtcher / Rufus / dd
+            - Or boot from SD, then login → System → Amlogic Service → Install OpenWrt to eMMC
