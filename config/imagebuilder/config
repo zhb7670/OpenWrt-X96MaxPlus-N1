@@ -3,16 +3,19 @@
 # OpenWrt-X96MaxPlus-N1  -  Image Builder custom package list
 #
 # Format: CONFIG_PACKAGE_<name>=y     -> package WILL be installed
-#         (anything absent or `is not set` -> not installed)
 #
 # PHASE 1 = minimal bootable firmware.
-#   Goal: OpenWrt + LuCI + SSH + network + USB + storage + basic tools.
-#   Large plugins (OpenClash / PassWall / Docker / AdGuardHome / Samba / ...)
-#   are intentionally NOT here yet - see roadmap in README.
+#   OpenWrt + LuCI + SSH + network + USB + storage + basic tools.
 #
-# NOTE: core packages (luci, luci-base, luci-app-amlogic, kmod-brcmfmac, wpad...)
-#       are already force-listed in config/imagebuilder/imagebuilder.sh.
-#       This file adds Phase-1 extras only.
+# IMPORTANT: every package below was verified against the REAL OpenWrt 25.12.5
+#            package index (aarch64_generic) + armsr/armv8 kmods feed.
+#            Do NOT add package names from memory - they must exist in the index.
+#
+# NOTE:
+#   - Amlogic SoC drivers (meson*, ir) are built INTO the OPHUB kernel, not modules.
+#   - luci-app-amlogic is downloaded separately (OPHUB release) in imagebuilder.sh.
+#   - Third-party themes/apps (argon, diskman, bluetooth) are NOT in the official
+#     feed -> they are Phase 2 (via OPHUB/third-party feeds), not Phase 1.
 #
 #======================================================================================
 
@@ -21,15 +24,13 @@ CONFIG_PACKAGE_openssh-server=y
 CONFIG_PACKAGE_openssh-sftp-server=y
 CONFIG_PACKAGE_dropbear=y
 
-# ---- LuCI essentials (HTTPS / ttyd / file manager / backup / upgrade) ----
+# ---- LuCI essentials (HTTPS / ttyd / file manager / commands) ----
 CONFIG_PACKAGE_luci-ssl=y
 CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-i18n-ttyd-zh-cn=y
 CONFIG_PACKAGE_luci-app-filemanager=y
 CONFIG_PACKAGE_luci-app-commands=y
 CONFIG_PACKAGE_luci-i18n-commands-zh-cn=y
-CONFIG_PACKAGE_luci-app-argon-config=y
-CONFIG_PACKAGE_luci-theme-argon=y
 
 # ---- network diagnostics / system monitor ----
 CONFIG_PACKAGE_luci-app-nlbwmon=y
@@ -40,8 +41,6 @@ CONFIG_PACKAGE_luci-app-vnstat2=y
 CONFIG_PACKAGE_luci-i18n-vnstat2-zh-cn=y
 
 # ---- disk / storage management ----
-CONFIG_PACKAGE_luci-app-diskman=y
-CONFIG_PACKAGE_luci-i18n-diskman-zh-cn=y
 CONFIG_PACKAGE_luci-app-hd-idle=y
 CONFIG_PACKAGE_luci-i18n-hd-idle-zh-cn=y
 
@@ -63,24 +62,20 @@ CONFIG_PACKAGE_kmod-usb2=y
 CONFIG_PACKAGE_kmod-usb3=y
 CONFIG_PACKAGE_kmod-usb-acm=y
 
-# ---- Amlogic SoC support (X96 Max+ S905X3 / N1 S905D) ----
-CONFIG_PACKAGE_kmod-meson-gxbb=y
-CONFIG_PACKAGE_kmod-mmc-meson-gx=y
-CONFIG_PACKAGE_kmod-amlogic-ir=y
-
-# ---- WiFi drivers: RTL8822CS (X96Max+) & BCM43455 (N1) ----
+# ---- WiFi drivers ----
+# X96 Max+ : RTL8822CS  -> kmod-rtw88-8822cs (+ rtw88-sdio)
+# N1       : BCM43455   -> kmod-brcmfmac
 CONFIG_PACKAGE_kmod-brcmfmac=y
 CONFIG_PACKAGE_kmod-brcmutil=y
-CONFIG_PACKAGE_kmod-rtw88-8822cs=y
 CONFIG_PACKAGE_kmod-rtw88=y
-CONFIG_PACKAGE_kmod-rtl8822cu=y
+CONFIG_PACKAGE_kmod-rtw88-8822cs=y
+CONFIG_PACKAGE_kmod-rtw88-sdio=y
+CONFIG_PACKAGE_kmod-cfg80211=y
+CONFIG_PACKAGE_kmod-mac80211=y
 
 # ---- Bluetooth ----
 CONFIG_PACKAGE_kmod-bluetooth=y
 CONFIG_PACKAGE_kmod-btusb=y
-CONFIG_PACKAGE_kmod-brcmutil-bt=y
-CONFIG_PACKAGE_kmod-btbcm=y
-CONFIG_PACKAGE_luci-app-bluetooth=y
 
 # ---- basic shell utilities ----
 CONFIG_PACKAGE_htop=y
@@ -96,6 +91,9 @@ CONFIG_PACKAGE_ethtool=y
 CONFIG_PACKAGE_ip-full=y
 CONFIG_PACKAGE_tcpdump=y
 CONFIG_PACKAGE_bind-dig=y
+CONFIG_PACKAGE_iperf3=y
+CONFIG_PACKAGE_curl=y
+CONFIG_PACKAGE_wget-ssl=y
 
 # ---- zoneinfo (CN) ----
 CONFIG_PACKAGE_zoneinfo-asia=y
