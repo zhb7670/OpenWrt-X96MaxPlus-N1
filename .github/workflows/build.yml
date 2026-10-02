@@ -108,10 +108,7 @@ jobs:
           chmod +x ${IMAGEBUILDER_SH}
           ${IMAGEBUILDER_SH} ${RELEASES_BRANCH}
           echo "build_tag=OpenWrt_X96MaxPlus_N1_${RELEASES_BRANCH/:/_}_$(date +"%Y.%m.%d")" >> ${GITHUB_ENV}
-          # Create symbolic link for the packaging action
-          [[ -d "/builder/openwrt" ]] || mkdir -p /builder/openwrt
-          mkdir -p /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main
-          ln -sf ${PWD}/output /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main/openwrt || true
+          ls -lh output/
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Package OpenWrt for X96Max+ / N1
