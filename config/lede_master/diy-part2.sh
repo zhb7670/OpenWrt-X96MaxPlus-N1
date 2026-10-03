@@ -61,7 +61,7 @@ echo "[diy-part2] Appending target plugin list to .config ..."
 
 cat >> .config <<'EOF'
 
-# ==================== X96MaxPlus-N1 : 服务 (Services) ====================
+# ==================== X96MaxPlus-N1 : Services ====================
 CONFIG_PACKAGE_luci-app-passwall2=y
 CONFIG_PACKAGE_luci-app-dae=y
 CONFIG_PACKAGE_luci-app-ikoolproxy=y
@@ -89,7 +89,7 @@ CONFIG_PACKAGE_luci-app-tinyproxy=y
 CONFIG_PACKAGE_hysteria=y
 CONFIG_PACKAGE_haproxy=y
 
-# ==================== X96MaxPlus-N1 : 网络存储 (NAS) ====================
+# ==================== X96MaxPlus-N1 : NAS / Storage ====================
 CONFIG_PACKAGE_luci-app-kodexplorer=y
 CONFIG_PACKAGE_luci-app-nfs=y
 CONFIG_PACKAGE_luci-app-verysync=y
@@ -115,7 +115,7 @@ CONFIG_PACKAGE_luci-app-ipsec-server=y
 CONFIG_PACKAGE_luci-app-pptp-server=y
 CONFIG_PACKAGE_luci-app-openvpn-server=y
 
-# ==================== X96MaxPlus-N1 : 系统 / 状态 ====================
+# ==================== X96MaxPlus-N1 : System / Status ====================
 CONFIG_PACKAGE_luci-app-autoreboot=y
 CONFIG_PACKAGE_luci-app-filetransfer=y
 CONFIG_PACKAGE_luci-app-ramfree=y

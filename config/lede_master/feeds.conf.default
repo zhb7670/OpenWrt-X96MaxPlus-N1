@@ -1,22 +1,22 @@
-#==============================================================================
-# OpenWrt-X96MaxPlus-N1 - feeds.conf.default  (lede_master)
+# ============================================================
+# OpenWrt-X96MaxPlus-N1 : feeds for lede_master
 #
-# 基于 coolsnowwolf/lede 官方 feeds.conf.default 原样保留，
-# 末尾追加 kenzok8/small-package 以覆盖目标插件。
+# NOTE: feeds update parser does NOT tolerate non-ASCII comments.
+#       Keep ALL comments ASCII-only. No Chinese characters here.
 #
-# 被 .github/workflows/build-from-source.yml 的
-# "Load custom feeds" 步骤覆盖到 openwrt/feeds.conf.default
-#==============================================================================
+# This file OVERWRITES upstream feeds.conf.default entirely, so
+# all official feeds must be listed.
+# ============================================================
 
-# ---- Lede 官方 feeds（原样，勿改分支）----
+# ---- Lede official feeds (do NOT change branch) ----
 src-git packages  https://github.com/coolsnowwolf/packages.git
 src-git luci      https://github.com/coolsnowwolf/luci.git;openwrt-25.12
 src-git routing   https://github.com/coolsnowwolf/routing.git
 src-git telephony https://github.com/coolsnowwolf/telephony.git
 src-git helloworld https://github.com/fw876/helloworld.git
 
-# ---- 三方 feeds（追加）----
-# small-package：覆盖约 45 个目标插件
+# ---- Third-party feeds ----
+# small-package: covers ~45 target plugins
 #   passwall2/openclash/ssr-plus/adguardhome/dockerman/alist/qbittorrent/
 #   aria2/gost/udp2raw/verysync/vsftpd/unblockmusic/wechatpush/pushbot/
 #   smartdns/filebrowser/kodexplorer/ssr-mudb-server/softethervpn/...

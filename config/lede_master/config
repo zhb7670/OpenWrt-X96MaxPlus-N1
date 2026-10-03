@@ -3088,14 +3088,14 @@ CONFIG_PACKAGE_kmod-usb-net-asix-ax88179=y
 # Wireless Drivers
 #
 #
-# WiFi 驱动和管理工具
+# WiFi drivers and management tools
 #
-# RTL8822CS SDIO 无线驱动
+# RTL8822CS SDIO wireless driver
 CONFIG_PACKAGE_kmod-rtw88=y
 CONFIG_PACKAGE_kmod-rtw88-sdio=y
 CONFIG_PACKAGE_kmod-rtw88-8822cs=y
 
-# 无线管理工具
+# wireless management tools
 # CONFIG_PACKAGE_wpad-openssl is not set
 CONFIG_PACKAGE_wireless-tools=y
 CONFIG_PACKAGE_iw=y
