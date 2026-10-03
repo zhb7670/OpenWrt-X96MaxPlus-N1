@@ -1,23 +1,6 @@
-# ============================================================
-# OpenWrt-X96MaxPlus-N1 : feeds for lede_master
-#
-# NOTE: feeds update parser does NOT tolerate non-ASCII comments.
-#       Keep ALL comments ASCII-only. No Chinese characters here.
-#
-# This file OVERWRITES upstream feeds.conf.default entirely, so
-# all official feeds must be listed.
-# ============================================================
-
-# ---- Lede official feeds (do NOT change branch) ----
 src-git packages  https://github.com/coolsnowwolf/packages.git
 src-git luci      https://github.com/coolsnowwolf/luci.git;openwrt-25.12
 src-git routing   https://github.com/coolsnowwolf/routing.git
 src-git telephony https://github.com/coolsnowwolf/telephony.git
 src-git helloworld https://github.com/fw876/helloworld.git
-
-# ---- Third-party feeds ----
-# small-package: covers ~45 target plugins
-#   passwall2/openclash/ssr-plus/adguardhome/dockerman/alist/qbittorrent/
-#   aria2/gost/udp2raw/verysync/vsftpd/unblockmusic/wechatpush/pushbot/
-#   smartdns/filebrowser/kodexplorer/ssr-mudb-server/softethervpn/...
 src-git small https://github.com/kenzok8/small-package.git
