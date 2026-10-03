@@ -216,8 +216,9 @@ jobs:
           echo "source_hash=${source_hash}" >> ${GITHUB_ENV}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Cache ccache
-        uses: actions/cache@v4
+      - name: Restore ccache
+        id: ccache-restore
+        uses: actions/cache/restore@v4
         with:
           path: /builder/openwrt/.ccache
           key: openwrt-${{ env.REPO_NAME }}-${{ env.source_hash }}
@@ -226,19 +227,65 @@ jobs:
 
       - name: Compile the OpenWrt firmware
         id: compile
+        timeout-minutes: 330
         run: |
           cd openwrt/
           echo -e "Compiling with $(nproc) threads"
           echo -e "Start time: $(date -u)"
-          make -j$(($(nproc) + 1)) V=s || make -j1 || make -j1 V=s
+
+          # ---- 软超时保护 ----
+          # GitHub 单 job 硬限 6h(360m)。用 timeout 320m 包裹 make，
+          # 让 make 在被 GitHub kill 之前【主动退出】，
+          # 从而能正常执行后续步骤(保存 ccache)，避免进度全丢。
+          set +e
+          timeout --signal=SIGINT --kill-after=120s 320m \
+            bash -c 'make -j$(($(nproc) + 1)) V=s || make -j1 || make -j1 V=s'
+          MAKE_RC=$?
+          set -e
+
+          if [[ ${MAKE_RC} -eq 124 || ${MAKE_RC} -eq 130 ]]; then
+            echo "::warning::Compile hit the 320m soft timeout - interrupt was intentional."
+            echo "::warning::ccache will still be saved so the next run resumes fast."
+            echo "timed_out=true" >> ${GITHUB_OUTPUT}
+          elif [[ ${MAKE_RC} -ne 0 ]]; then
+            echo "::error::Compile failed with exit code ${MAKE_RC}"
+            echo "timed_out=false" >> ${GITHUB_OUTPUT}
+            echo "status=failed" >> ${GITHUB_OUTPUT}
+            echo "ccache stats:"; ccache -s 2>/dev/null || true
+            exit 1
+          else
+            echo "timed_out=false" >> ${GITHUB_OUTPUT}
+          fi
 
           echo -e "ccache statistics:"
-          ccache -s 2>/dev/null
+          ccache -s 2>/dev/null || true
           echo -e "ccache directory size:"
           du -sh $(pwd)/.ccache 2>/dev/null || echo "No ccache directory found."
-
           echo -e "End time: $(date -u)"
-          echo "status=success" >> ${GITHUB_OUTPUT}
+
+          # 若成功编出 rootfs，标记成功
+          if ls bin/targets/*/*/*rootfs.tar.gz >/dev/null 2>&1; then
+            echo "status=success" >> ${GITHUB_OUTPUT}
+          else
+            echo "status=failed" >> ${GITHUB_OUTPUT}
+          fi
+
+      - name: Save ccache (always, even on timeout/failure)
+        if: always() && steps.ccache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /builder/openwrt/.ccache
+          key: openwrt-${{ env.REPO_NAME }}-${{ env.source_hash }}-${{ github.run_id }}
+
+      - name: Timeout report
+        if: always() && steps.compile.outputs.timed_out == 'true'
+        run: |
+          echo "::notice::=============================================="
+          echo "::notice::COMPILE HIT SOFT TIMEOUT (320 minutes)."
+          echo "::notice::This is EXPECTED for a first cold build (250+ packages)."
+          echo "::notice::ccache has been saved. Simply RE-RUN this workflow -"
+          echo "::notice::the next run will reuse the cache and finish fast."
+          echo "::notice::=============================================="
 
       - name: Clean up build files and reclaim disk space
         id: clean
