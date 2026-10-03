@@ -59,6 +59,12 @@ sed -i 's|-C $(PKG_BUILD_DIR)$|CC="$(TARGET_CC_NOCACHE)"|' package/feeds/package
 #=====================================================================================
 echo "[diy-part2] Appending target plugin list to .config ..."
 
+# --- Disable kmod-oaf (open-app-filter) ---
+# Reason: its source (2025-07-03) uses del_timer_sync(), removed in Linux 6.15+.
+# Build error: app_filter.c:1568: implicit declaration of function 'del_timer_sync'
+# It is NOT part of any target menu item, and nothing depends on it.
+sed -i 's/^CONFIG_PACKAGE_kmod-oaf=y/# CONFIG_PACKAGE_kmod-oaf is not set/' .config
+
 cat >> .config <<'EOF'
 
 # ==================== X96MaxPlus-N1 : Services ====================
